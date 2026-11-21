@@ -149,4 +149,4 @@ def exibir_resumo(evaluations, errors):
 
 
 if __name__ == "__main__":
-    processar_consultas("CAR0001")
+    processar_consultas()
