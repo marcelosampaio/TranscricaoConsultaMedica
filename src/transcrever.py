@@ -12,36 +12,38 @@ DATASET_DIR = (
 
 AUDIO_FILE = DATASET_DIR / "audios_fornecidos" / "CAR0001.mp3"
 
-RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
-OUTPUT_FILE = RESULTS_DIR / "CAR0001_whisper_base.txt"
 
-
-def main():
-    if not AUDIO_FILE.is_file():
-        raise FileNotFoundError(f"Áudio não encontrado: {AUDIO_FILE}")
-
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
+def carregar_modelo(model_name="base"):
     device = "mps" if torch.backends.mps.is_available() else "cpu"
 
     print(f"Dispositivo: {device}")
-    print("Carregando modelo Whisper base...")
+    print(f"Carregando modelo Whisper {model_name}...")
 
-    model = whisper.load_model("base", device=device)
+    return whisper.load_model(model_name, device=device)
 
-    print("Iniciando transcrição de CAR0001...")
+
+def transcrever_audio(audio_file, model):
+    audio_file = Path(audio_file)
+
+    if not audio_file.is_file():
+        raise FileNotFoundError(f"Áudio não encontrado: {audio_file}")
 
     result = model.transcribe(
-        str(AUDIO_FILE),
+        str(audio_file),
         language="en",
         fp16=False,
     )
 
-    transcription = result["text"].strip()
+    return result["text"].strip()
 
-    OUTPUT_FILE.write_text(transcription + "\n", encoding="utf-8")
 
-    print(f"\nTranscrição salva em: {OUTPUT_FILE}")
+def main():
+    model = carregar_modelo()
+
+    print("Iniciando transcrição de CAR0001...")
+
+    transcription = transcrever_audio(AUDIO_FILE, model)
+
     print("\nTexto reconhecido:")
     print(transcription)
 
