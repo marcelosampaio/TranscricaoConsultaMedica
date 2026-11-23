@@ -1,5 +1,8 @@
+
 import csv
+from datetime import datetime
 from pathlib import Path
+from time import perf_counter
 
 from src.transcrever import carregar_modelo, transcrever_audio
 from src.avaliar_transcricao import avaliar_transcricao
@@ -19,7 +22,24 @@ TRANSCRIPTIONS_DIR = RESULTS_DIR / "transcricoes"
 CSV_FILE = RESULTS_DIR / "avaliacao.csv"
 
 
+def ler_transcricao_referencia(reference_file):
+    content = reference_file.read_bytes()
+
+    if content.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return content.decode("utf-16")
+
+    return content.decode("utf-8-sig")
+
+
 def processar_consultas(consulta_id=None):
+    start_datetime = datetime.now()
+    start_time = perf_counter()
+
+    print(
+        f"Início do processamento: "
+        f"{start_datetime:%d/%m/%Y %H:%M:%S}"
+    )
+
     TRANSCRIPTIONS_DIR.mkdir(parents=True, exist_ok=True)
 
     audio_files = sorted(AUDIO_DIR.glob("*.mp3"))
@@ -60,7 +80,7 @@ def processar_consultas(consulta_id=None):
 
             transcription = transcrever_audio(audio_file, model)
 
-            reference = reference_file.read_text(encoding="utf-8")
+            reference = ler_transcricao_referencia(reference_file)
 
             metrics = avaliar_transcricao(reference, transcription)
             metrics["consulta"] = consultation_id
@@ -86,6 +106,17 @@ def processar_consultas(consulta_id=None):
     salvar_avaliacoes(evaluations)
 
     exibir_resumo(evaluations, errors)
+
+    end_datetime = datetime.now()
+    elapsed_time = perf_counter() - start_time
+
+    hours, remainder = divmod(int(elapsed_time), 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    print("\n========== TEMPO DE PROCESSAMENTO ==========")
+    print(f"Início: {start_datetime:%d/%m/%Y %H:%M:%S}")
+    print(f"Fim: {end_datetime:%d/%m/%Y %H:%M:%S}")
+    print(f"Tempo total: {hours:02d}:{minutes:02d}:{seconds:02d}")
 
 
 def salvar_avaliacoes(evaluations):
